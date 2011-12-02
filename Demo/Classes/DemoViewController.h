@@ -18,9 +18,14 @@
 @property (nonatomic, retain) IBOutlet UILabel *statusLabel;
 @property (nonatomic, retain) IBOutlet UIButton *logInButton;
 @property (nonatomic, retain) IBOutlet UIButton *logOutButton;
+@property (nonatomic, retain) IBOutlet UILabel *connectionsLabel;
+@property (nonatomic, retain) IBOutlet UIButton *getConnectionsButton;
 
 - (IBAction)logIn:(id)sender;
 - (IBAction)logOut:(id)sender;
+- (IBAction)getConnections:(id)sender;
+
+-(void)fetchConnections;
 
 @end
 

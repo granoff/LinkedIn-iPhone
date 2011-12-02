@@ -12,8 +12,8 @@
 
 
 // !!!: replace these empty values with your actual LinkedIn tokens
-static NSString *const kOAuthConsumerKey     = @"";
-static NSString *const kOAuthConsumerSecret  = @"";
+static NSString *const kOAuthConsumerKey     = @"rpup37395evx";
+static NSString *const kOAuthConsumerSecret  = @"x2gOAYqhTfIRN04l";
 
 
 @interface DemoViewController ()
@@ -32,6 +32,8 @@ static NSString *const kOAuthConsumerSecret  = @"";
 @synthesize statusLabel;
 @synthesize logInButton;
 @synthesize logOutButton;
+@synthesize connectionsLabel;
+@synthesize getConnectionsButton;
 @synthesize engine;
 @synthesize fetchConnection;
 
@@ -54,6 +56,12 @@ static NSString *const kOAuthConsumerSecret  = @"";
   }
 }
 
+- (IBAction)getConnections:(id)sender {
+    if (self.engine.isAuthorized ) {
+        //[self.engine connectionsForCurrentUser];
+        [self fetchConnections];
+    }
+}
 
 #pragma mark - private API
 
@@ -62,11 +70,13 @@ static NSString *const kOAuthConsumerSecret  = @"";
     self.statusLabel.text = @"Authorized";
     self.logInButton.enabled = NO;
     self.logOutButton.enabled = YES;
+      self.getConnectionsButton.enabled = YES;
   }
   else {
     self.statusLabel.text = @"Not authorized";
     self.logInButton.enabled = YES;
     self.logOutButton.enabled = NO;
+      self.getConnectionsButton.enabled = NO;
   }
   
   if( status ) {
@@ -77,6 +87,11 @@ static NSString *const kOAuthConsumerSecret  = @"";
 - (void)fetchProfile {
   self.fetchConnection = [self.engine profileForCurrentUser];
   [self updateUI:[@"fetching profile on " stringByAppendingString:[self.fetchConnection description]]];
+}
+
+- (void)fetchConnections {
+    self.fetchConnection = [self.engine connectionsForCurrentUser];
+    [self updateUI:[@"fetching connections on " stringByAppendingString:[self.fetchConnection description]]];
 }
 
 
@@ -131,11 +146,20 @@ static NSString *const kOAuthConsumerSecret  = @"";
   return [OAToken rd_tokenWithUserDefaultsUsingServiceProviderName:@"LinkedIn" prefix:@"Demo"];
 }
 
-- (void)linkedInEngine:(RDLinkedInEngine *)engine requestSucceeded:(RDLinkedInConnectionID *)identifier withResults:(id)results {
+- (void)linkedInEngine:(RDLinkedInEngine *)engine requestSucceeded:(RDLinkedInConnectionID *)identifier withResults:(id)results 
+{
   NSLog(@"++ LinkedIn engine reports success for connection %@\n%@", identifier, results);
   if( identifier == self.fetchConnection ) {
-    NSDictionary* profile = results;
-    [self updateUI:[NSString stringWithFormat:@"got profile for %@ %@", [profile objectForKey:@"first-name"], [profile objectForKey:@"last-name"]]];
+      RDLinkedInHTTPURLConnection *connection = [self.engine connectionWithID:identifier];
+      NSDictionary* profile = results;
+      
+      NSString *req = [connection.request description];
+      if ([req hasSuffix:@"~>"]) {
+          [self updateUI:[NSString stringWithFormat:@"got profile for %@ %@", [profile objectForKey:@"first-name"], [profile objectForKey:@"last-name"]]];
+      } else if ([req hasSuffix:@"connections>"]) {
+          NSArray *contacts = [results objectForKey:@"person"];
+          connectionsLabel.text = [NSString stringWithFormat:@"%d connections", [contacts count]];
+      }
   }
 }
 
