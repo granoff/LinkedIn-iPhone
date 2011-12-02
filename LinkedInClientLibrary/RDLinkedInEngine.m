@@ -9,7 +9,6 @@
 #import <OAuthConsumer/OAuthConsumer.h>
 
 #import "RDLinkedInEngine.h"
-#import "RDLinkedInHTTPURLConnection.h"
 #import "RDLinkedInRequestBuilder.h"
 #import "RDLinkedInResponseParser.h"
 #import "RDLogging.h"
@@ -76,6 +75,11 @@ const NSUInteger kRDLinkedInMaxStatusLength = 140;
 
 - (NSArray *)connectionIdentifiers {
   return [rdConnections allKeys];
+}
+
+- (RDLinkedInHTTPURLConnection *)connectionWithID:(RDLinkedInConnectionID *)identifier
+{
+    return [rdConnections objectForKey:identifier];
 }
 
 - (void)closeConnection:(RDLinkedInHTTPURLConnection *)connection {
@@ -157,6 +161,12 @@ const NSUInteger kRDLinkedInMaxStatusLength = 140;
   return [self sendAPIRequestWithURL:url HTTPMethod:@"GET" body:nil];
 }
 
+- (RDLinkedInConnectionID *)connectionsForCurrentUser
+{
+    NSURL *url = [NSURL URLWithString:[kAPIBaseURL stringByAppendingString:@"/v1/people/~/connections"]];
+    return [self sendAPIRequestWithURL:url HTTPMethod:@"GET" body:nil]; 
+}
+
 - (RDLinkedInConnectionID *)updateStatus:(NSString *)newStatus {
   NSURL* url = [NSURL URLWithString:[kAPIBaseURL stringByAppendingString:@"/v1/people/~/current-status"]];
   newStatus = [newStatus length] > kRDLinkedInMaxStatusLength ? [newStatus substringToIndex:kRDLinkedInMaxStatusLength] : newStatus;
@@ -179,6 +189,7 @@ const NSUInteger kRDLinkedInMaxStatusLength = 140;
                                                          signatureProvider:nil] autorelease];
   [request setHTTPShouldHandleCookies:NO];
   [request setValue:@"text/xml;charset=UTF-8" forHTTPHeaderField:@"Content-Type"];
+    //  [request setValue:@"json" forHTTPHeaderField:@"x-li-format"];
   if( method ) {
     [request setHTTPMethod:method];
   }
@@ -202,17 +213,23 @@ const NSUInteger kRDLinkedInMaxStatusLength = 140;
 - (void)parseConnectionResponse:(RDLinkedInHTTPURLConnection *)connection {
   NSError* error = nil;
   id results = nil;
-  
-  if( [RDLinkedInResponseParser parseXML:[connection data] connection:connection results:&results error:&error] ) {
-    if( [rdDelegate respondsToSelector:@selector(linkedInEngine:requestSucceeded:withResults:)] ) {
-      [rdDelegate linkedInEngine:self requestSucceeded:connection.identifier withResults:results];
+    
+//    if ([NSJSONSerialization isValidJSONObject:[connection data]]) {
+//        results = [NSJSONSerialization dataWithJSONObject:[connection data] options:NSJSONWritingPrettyPrinted error:&error];
+//        if( [rdDelegate respondsToSelector:@selector(linkedInEngine:requestSucceeded:withResults:)] ) {
+//          [rdDelegate linkedInEngine:self requestSucceeded:connection.identifier withResults:results];
+//        }
+//    }
+//  
+    if( [RDLinkedInResponseParser parseXML:[connection data] connection:connection results:&results error:&error] ) {
+        if( [rdDelegate respondsToSelector:@selector(linkedInEngine:requestSucceeded:withResults:)] ) {
+          [rdDelegate linkedInEngine:self requestSucceeded:connection.identifier withResults:results];
+        }
+    } else {
+        if( [rdDelegate respondsToSelector:@selector(linkedInEngine:requestFailed:withError:)] ) {
+          [rdDelegate linkedInEngine:self requestFailed:connection.identifier withError:error];
+        }    
     }
-  }
-  else {
-    if( [rdDelegate respondsToSelector:@selector(linkedInEngine:requestFailed:withError:)] ) {
-      [rdDelegate linkedInEngine:self requestFailed:connection.identifier withError:error];
-    }    
-  }
 }
 
 - (void)sendTokenRequestWithURL:(NSURL *)url token:(OAToken *)token onSuccess:(SEL)successSel onFail:(SEL)failSel {

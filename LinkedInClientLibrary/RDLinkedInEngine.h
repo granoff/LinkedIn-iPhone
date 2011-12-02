@@ -15,6 +15,7 @@
 
 #import "RDLinkedInTypes.h"
 #import "RDLinkedInEngineDelegate.h"
+#import "RDLinkedInHTTPURLConnection.h"
 
 @class OAConsumer;
 @class OAToken;
@@ -48,6 +49,7 @@ extern const NSUInteger kRDLinkedInMaxStatusLength;
 // connection management
 - (NSUInteger)numberOfConnections;
 - (NSArray *)connectionIdentifiers;
+- (RDLinkedInHTTPURLConnection *)connectionWithID:(RDLinkedInConnectionID *)identifier;
 - (void)closeConnectionWithID:(RDLinkedInConnectionID *)identifier;
 - (void)closeAllConnections;
 
@@ -60,6 +62,8 @@ extern const NSUInteger kRDLinkedInMaxStatusLength;
 // API methods
 - (RDLinkedInConnectionID *)profileForCurrentUser;
 - (RDLinkedInConnectionID *)profileForPersonWithID:(NSString *)memberID;
+
+- (RDLinkedInConnectionID *)connectionsForCurrentUser;
 
 - (RDLinkedInConnectionID *)updateStatus:(NSString *)newStatus;
 
